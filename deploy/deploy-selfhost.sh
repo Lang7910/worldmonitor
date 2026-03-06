@@ -75,6 +75,12 @@ compose_run() {
 
 cd "$ROOT_DIR"
 if [ "$CLEAN_REBUILD" = "true" ]; then
+  if command -v git >/dev/null 2>&1 && [ -d "$ROOT_DIR/.git" ]; then
+    echo "Fetching latest git refs..."
+    git -C "$ROOT_DIR" fetch --all --prune
+  else
+    echo "Skipping git fetch (git not found or not a git repository)."
+  fi
   echo "Running clean rebuild..."
   if [ "$USE_RELAY" = "true" ]; then
     compose_run --profile relay down --remove-orphans --rmi local
