@@ -1,0 +1,70 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    env_file:
+      - ${SELFHOST_ENV_FILE:-./selfhost.env}
+    environment:
+      LOCAL_API_MODE: selfhost-docker
+      LOCAL_API_HOST: 0.0.0.0
+      LOCAL_API_PORT: 8787
+      LOCAL_API_CLOUD_FALLBACK: ${LOCAL_API_CLOUD_FALLBACK:-false}
+      LOCAL_API_YOUTUBE_LIVE_MODE: ${LOCAL_API_YOUTUBE_LIVE_MODE:-local}
+      WS_RELAY_URL: ${WS_RELAY_URL:-http://relay:3004}
+      RELAY_AUTH_HEADER: ${RELAY_AUTH_HEADER:-x-relay-key}
+      RELAY_SHARED_SECRET: ${RELAY_SHARED_SECRET:-}
+    expose:
+      - "8787"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/api/local-status').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 8s
+      retries: 5
+      start_period: 40s
+    networks:
+      - worldmonitor
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        VITE_VARIANT: ${VITE_VARIANT:-full}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8080}:80"
+    networks:
+      - worldmonitor
+
+  relay:
+    profiles:
+      - relay
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.relay
+    restart: unless-stopped
+    env_file:
+      - ${SELFHOST_ENV_FILE:-./selfhost.env}
+    environment:
+      PORT: 3004
+      RELAY_AUTH_HEADER: ${RELAY_AUTH_HEADER:-x-relay-key}
+      ALLOW_UNAUTHENTICATED_RELAY: ${ALLOW_UNAUTHENTICATED_RELAY:-false}
+    expose:
+      - "3004"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3004/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 8s
+      retries: 5
+      start_period: 30s
+    networks:
+      - worldmonitor
+
+networks:
+  worldmonitor:
+    driver: bridge

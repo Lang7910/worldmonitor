@@ -1904,6 +1904,24 @@ npm run dev    # Vite dev server on http://localhost:5173
 
 This runs the frontend without the API layer. Panels that require server-side proxying will show "No data available". The interactive map, static data layers (bases, cables, pipelines), and browser-side ML models still work.
 
+### Option 4: Self-Hosted Docker (Web + API + Optional Relay)
+
+Run the full web stack on your own server with Docker Compose:
+
+```bash
+cp deploy/selfhost.env.example deploy/selfhost.env
+# edit deploy/selfhost.env with your keys
+sh deploy/deploy-selfhost.sh
+```
+
+This starts:
+
+- `web` (Nginx + SPA)
+- `api` (local Node API runtime)
+- optional `relay` profile (AIS/OpenSky/Telegram/OREF/YouTube relay path)
+
+See [deploy/SELFHOST_DOCKER.md](./deploy/SELFHOST_DOCKER.md) for details.
+
 ### Platform Notes
 
 | Platform               | Status                  | Notes                                                                                                                          |
@@ -1912,7 +1930,7 @@ This runs the frontend without the API layer. Panels that require server-side pr
 | **Linux x86_64**       | Full support            | Works with `vercel dev` for local development. Desktop .AppImage available for x86_64. WebKitGTK rendering uses DMA-BUF with fallback to SHM for GPU compatibility. Font stack includes DejaVu Sans Mono and Liberation Mono for consistent rendering across distros |
 | **macOS**              | Works with `vercel dev` | Full local development                                                                                                         |
 | **Raspberry Pi / ARM** | Partial                 | `vercel dev` edge runtime emulation may not work on ARM. Use Option 1 (deploy to Vercel) or Option 3 (static frontend) instead |
-| **Docker**             | Planned                 | See [Roadmap](#roadmap)                                                                                                        |
+| **Docker**             | Full support            | Use [deploy/deploy-selfhost.sh](./deploy/deploy-selfhost.sh) with [deploy/docker-compose.selfhost.yml](./deploy/docker-compose.selfhost.yml) |
 
 ### Railway Relay (Optional)
 
@@ -2158,7 +2176,7 @@ Desktop release details, signing hooks, variant outputs, and clean-machine valid
 - [x] Sentry noise filtering (Three.js WebGL crashes, cross-origin workers, iOS media — 33 issues suppressed)
 - [ ] Mobile-optimized views
 - [ ] Push notifications for critical alerts
-- [ ] Self-hosted Docker image
+- [x] Self-hosted Docker image
 
 See [full roadmap](./docs/DOCUMENTATION.md#roadmap).
 

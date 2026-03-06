@@ -14,6 +14,7 @@
     "dev:happy": "cross-env VITE_VARIANT=happy vite",
     "build": "tsc && vite build",
     "build:sidecar-sebuf": "node scripts/build-sidecar-sebuf.mjs",
+    "build:selfhost-api": "node scripts/build-selfhost-api.mjs",
     "build:desktop": "node scripts/build-sidecar-sebuf.mjs && tsc && vite build",
     "build:full": "cross-env-shell VITE_VARIANT=full \"tsc && vite build\"",
     "build:tech": "cross-env-shell VITE_VARIANT=tech \"tsc && vite build\"",

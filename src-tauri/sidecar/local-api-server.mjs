@@ -99,7 +99,7 @@ globalThis.fetch = async function ipv4Fetch(input, init) {
 };
 
 const ALLOWED_ENV_KEYS = new Set([
-  'GROQ_API_KEY', 'OPENROUTER_API_KEY', 'FRED_API_KEY', 'EIA_API_KEY',
+  'GROQ_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'FRED_API_KEY', 'EIA_API_KEY',
   'CLOUDFLARE_API_TOKEN', 'ACLED_ACCESS_TOKEN', 'URLHAUS_AUTH_KEY',
   'OTX_API_KEY', 'ABUSEIPDB_API_KEY', 'WINGBITS_API_KEY', 'WS_RELAY_URL',
   'VITE_OPENSKY_RELAY_URL', 'OPENSKY_CLIENT_ID', 'OPENSKY_CLIENT_SECRET',
@@ -452,6 +452,7 @@ async function importHandler(modulePath) {
 
 function resolveConfig(options = {}) {
   const port = Number(options.port ?? process.env.LOCAL_API_PORT ?? 46123);
+  const host = String(options.host ?? process.env.LOCAL_API_HOST ?? '127.0.0.1');
   const remoteBase = String(options.remoteBase ?? process.env.LOCAL_API_REMOTE_BASE ?? 'https://worldmonitor.app').replace(/\/$/, '');
   const resourceDir = String(options.resourceDir ?? process.env.LOCAL_API_RESOURCE_DIR ?? process.cwd());
   const apiDir = options.apiDir
@@ -467,6 +468,7 @@ function resolveConfig(options = {}) {
 
   return {
     port,
+    host,
     remoteBase,
     resourceDir,
     dataDir,
@@ -488,10 +490,10 @@ async function handleLocalServiceStatus(context) {
     timestamp: new Date().toISOString(),
     summary: { operational: 2, degraded: 0, outage: 0, unknown: 0 },
     services: [
-      { id: 'local-api', name: 'Local Desktop API', category: 'dev', status: 'operational', description: `Running on 127.0.0.1:${context.port}` },
+      { id: 'local-api', name: 'Local Desktop API', category: 'dev', status: 'operational', description: `Running on ${context.host}:${context.port}` },
       { id: 'cloud-pass-through', name: 'Cloud pass-through', category: 'cloud', status: 'operational', description: `Fallback target ${context.remoteBase}` },
     ],
-    local: { enabled: true, mode: context.mode, port: context.port, remoteBase: context.remoteBase },
+    local: { enabled: true, mode: context.mode, host: context.host, port: context.port, remoteBase: context.remoteBase },
   });
 }
 
@@ -669,6 +671,16 @@ async function validateSecretAgainstProvider(key, rawValue, context = {}) {
       if (isAuthFailure(response.status, text)) return fail('OpenRouter rejected this key');
       if (!response.ok) return fail(`OpenRouter probe failed (${response.status})`);
       return ok('OpenRouter key verified');
+    }
+
+    case 'OPENAI_API_KEY': {
+      const response = await fetchWithTimeout('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${value}`, 'User-Agent': CHROME_UA },
+      });
+      const text = await response.text();
+      if (isAuthFailure(response.status, text)) return fail('OpenAI rejected this key');
+      if (!response.ok) return fail(`OpenAI probe failed (${response.status})`);
+      return ok('OpenAI key verified');
     }
 
     case 'FRED_API_KEY': {
@@ -1129,8 +1141,11 @@ async function dispatch(requestUrl, req, routes, context) {
 
   // YouTube live detection — requires residential proxy (Railway relay).
   // Direct fetch from sidecar fails (YouTube blocks datacenter IPs).
-  // Always proxy to cloud, bypassing the cloudFallback flag.
-  if (requestUrl.pathname === '/api/youtube/live') {
+  // Default desktop behavior is cloud proxy; self-host can override to local mode.
+  if (
+    requestUrl.pathname === '/api/youtube/live'
+    && String(process.env.LOCAL_API_YOUTUBE_LIVE_MODE || '').toLowerCase() !== 'local'
+  ) {
     const cloudResponse = await tryCloudFallback(requestUrl, req, context, 'youtube-live needs relay');
     if (cloudResponse) return cloudResponse;
     return json({ error: 'YouTube live detection unavailable' }, 503);
@@ -1361,7 +1376,7 @@ export async function createLocalApiServer(options = {}) {
         const onError = (error) => { server.off('listening', onListening); reject(error); };
         server.once('listening', onListening);
         server.once('error', onError);
-        server.listen(port, '127.0.0.1');
+        server.listen(port, context.host);
       });
 
       try {
@@ -1384,7 +1399,7 @@ export async function createLocalApiServer(options = {}) {
         try { writeFileSync(portFile, String(boundPort)); } catch {}
       }
 
-      context.logger.log(`[local-api] listening on http://127.0.0.1:${boundPort} (apiDir=${context.apiDir}, routes=${routes.length}, cloudFallback=${context.cloudFallback})`);
+      context.logger.log(`[local-api] listening on http://${context.host}:${boundPort} (apiDir=${context.apiDir}, routes=${routes.length}, cloudFallback=${context.cloudFallback})`);
       return { port: boundPort };
     },
     async close() {

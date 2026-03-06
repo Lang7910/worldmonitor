@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+dist
+tmp
+coverage
+playwright-report
+test-results
+src-tauri/target
+deploy/selfhost.env
+**/*.log
+npm-debug.log*
+*.tsbuildinfo

@@ -4,9 +4,10 @@ World Monitor desktop now uses a runtime configuration schema with per-feature t
 
 ## Secret keys
 
-The desktop vault schema (Rust `SUPPORTED_SECRET_KEYS`) supports the following 25 keys:
+The desktop vault schema (Rust `SUPPORTED_SECRET_KEYS`) supports the following 26 keys:
 
 - `GROQ_API_KEY`
+- `OPENAI_API_KEY`
 - `OPENROUTER_API_KEY`
 - `FRED_API_KEY`
 - `EIA_API_KEY`
@@ -52,7 +53,7 @@ Secrets are **not stored in plaintext files** by the frontend.
 
 If required secrets are missing/disabled:
 
-- Summarization: Groq/OpenRouter disabled, browser model fallback.
+- Summarization: OpenAI/Groq/OpenRouter disabled, browser model fallback.
 - FRED / EIA / Finnhub: economic, oil analytics, and stock data return empty state.
 - Cloudflare / ACLED: outages/conflicts return empty state.
 - Cyber threat feeds (URLhaus, OTX, AbuseIPDB): cyber threat layer returns empty state.

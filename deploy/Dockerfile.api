@@ -1,0 +1,26 @@
+FROM node:20-bookworm-slim AS build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY . .
+RUN npm run build:selfhost-api
+RUN npm prune --omit=dev
+
+FROM node:20-bookworm-slim AS runtime
+
+WORKDIR /app
+
+COPY --from=build /app /app
+
+ENV LOCAL_API_MODE=selfhost-docker
+ENV LOCAL_API_HOST=0.0.0.0
+ENV LOCAL_API_PORT=8787
+ENV LOCAL_API_CLOUD_FALLBACK=false
+ENV LOCAL_API_YOUTUBE_LIVE_MODE=local
+
+EXPOSE 8787
+
+CMD ["node", "src-tauri/sidecar/local-api-server.mjs"]

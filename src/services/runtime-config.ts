@@ -4,6 +4,7 @@ import { invokeTauri } from './tauri-bridge';
 export type RuntimeSecretKey =
   | 'GROQ_API_KEY'
   | 'OPENROUTER_API_KEY'
+  | 'OPENAI_API_KEY'
   | 'FRED_API_KEY'
   | 'EIA_API_KEY'
   | 'CLOUDFLARE_API_TOKEN'
@@ -29,6 +30,7 @@ export type RuntimeSecretKey =
 
 export type RuntimeFeatureId =
   | 'aiGroq'
+  | 'aiOpenAI'
   | 'aiOpenRouter'
   | 'economicFred'
   | 'energyEia'
@@ -79,6 +81,7 @@ function getSidecarSecretValidateUrl(): string {
 
 const defaultToggles: Record<RuntimeFeatureId, boolean> = {
   aiGroq: true,
+  aiOpenAI: true,
   aiOpenRouter: true,
   economicFred: true,
   energyEia: true,
@@ -107,13 +110,20 @@ export const RUNTIME_FEATURES: RuntimeFeatureDefinition[] = [
     name: 'Ollama local summarization',
     description: 'Local LLM provider via OpenAI-compatible endpoint (Ollama or LM Studio, desktop-first).',
     requiredSecrets: ['OLLAMA_API_URL', 'OLLAMA_MODEL'],
-    fallback: 'Falls back to Groq, then OpenRouter, then local browser model.',
+    fallback: 'Falls back to Groq, then OpenAI, then OpenRouter, then local browser model.',
   },
   {
     id: 'aiGroq',
     name: 'Groq summarization',
     description: 'Primary fast LLM provider used for AI summary generation.',
     requiredSecrets: ['GROQ_API_KEY'],
+    fallback: 'Falls back to OpenAI, then OpenRouter, then local browser model.',
+  },
+  {
+    id: 'aiOpenAI',
+    name: 'OpenAI summarization',
+    description: 'OpenAI Chat Completions provider for AI summary generation.',
+    requiredSecrets: ['OPENAI_API_KEY'],
     fallback: 'Falls back to OpenRouter, then local browser model.',
   },
   {
