@@ -5,6 +5,8 @@ export type RuntimeSecretKey =
   | 'GROQ_API_KEY'
   | 'OPENROUTER_API_KEY'
   | 'OPENAI_API_KEY'
+  | 'OPENAI_API_URL'
+  | 'OPENAI_MODEL'
   | 'FRED_API_KEY'
   | 'EIA_API_KEY'
   | 'CLOUDFLARE_API_TOKEN'
@@ -79,6 +81,11 @@ function getSidecarSecretValidateUrl(): string {
   return `${getApiBaseUrl()}/api/local-validate-secret`;
 }
 
+const DEFAULT_SECRET_VALUES: Partial<Record<RuntimeSecretKey, string>> = {
+  OPENAI_API_URL: 'https://api.openai.com/v1',
+  OPENAI_MODEL: 'gpt-4o-mini',
+};
+
 const defaultToggles: Record<RuntimeFeatureId, boolean> = {
   aiGroq: true,
   aiOpenAI: true,
@@ -121,9 +128,9 @@ export const RUNTIME_FEATURES: RuntimeFeatureDefinition[] = [
   },
   {
     id: 'aiOpenAI',
-    name: 'OpenAI summarization',
-    description: 'OpenAI Chat Completions provider for AI summary generation.',
-    requiredSecrets: ['OPENAI_API_KEY'],
+    name: 'OpenAI-compatible summarization',
+    description: 'OpenAI-compatible Chat Completions provider (base URL + key + model).',
+    requiredSecrets: ['OPENAI_API_KEY', 'OPENAI_API_URL', 'OPENAI_MODEL'],
     fallback: 'Falls back to OpenRouter, then local browser model.',
   },
   {
@@ -283,6 +290,7 @@ const URL_SECRET_KEYS = new Set<RuntimeSecretKey>([
   'WS_RELAY_URL',
   'VITE_OPENSKY_RELAY_URL',
   'OLLAMA_API_URL',
+  'OPENAI_API_URL',
 ]);
 
 export interface SecretVerificationResult {
@@ -339,7 +347,10 @@ function notifyConfigChanged(): void {
 }
 
 function seedSecretsFromEnvironment(): void {
-  if (isDesktopRuntime()) return;
+  if (isDesktopRuntime()) {
+    applyDefaultSecrets();
+    return;
+  }
 
   const keys = new Set<RuntimeSecretKey>(RUNTIME_FEATURES.flatMap(feature => feature.requiredSecrets));
   for (const key of keys) {
@@ -347,6 +358,15 @@ function seedSecretsFromEnvironment(): void {
     if (value) {
       runtimeConfig.secrets[key] = { value, source: 'env' };
     }
+  }
+
+  applyDefaultSecrets();
+}
+
+function applyDefaultSecrets(): void {
+  for (const [key, value] of Object.entries(DEFAULT_SECRET_VALUES) as Array<[RuntimeSecretKey, string]>) {
+    if (runtimeConfig.secrets[key]) continue;
+    runtimeConfig.secrets[key] = { value, source: 'env' };
   }
 }
 

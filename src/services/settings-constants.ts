@@ -28,6 +28,8 @@ export const SIGNUP_URLS: Partial<Record<RuntimeSecretKey, string>> = {
 export const PLAINTEXT_KEYS = new Set<RuntimeSecretKey>([
   'OLLAMA_API_URL',
   'OLLAMA_MODEL',
+  'OPENAI_API_URL',
+  'OPENAI_MODEL',
   'WS_RELAY_URL',
   'VITE_OPENSKY_RELAY_URL',
 ]);
@@ -36,7 +38,9 @@ export const MASKED_SENTINEL = '__WM_MASKED__';
 
 export const HUMAN_LABELS: Record<RuntimeSecretKey, string> = {
   GROQ_API_KEY: 'Groq API Key',
-  OPENAI_API_KEY: 'OpenAI API Key',
+  OPENAI_API_KEY: 'OpenAI-compatible API Key',
+  OPENAI_API_URL: 'OpenAI-compatible Base URL',
+  OPENAI_MODEL: 'OpenAI-compatible Model',
   OPENROUTER_API_KEY: 'OpenRouter API Key',
   FRED_API_KEY: 'FRED API Key',
   EIA_API_KEY: 'EIA API Key',

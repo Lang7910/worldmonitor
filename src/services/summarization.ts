@@ -51,7 +51,7 @@ interface ApiProviderDef {
 const API_PROVIDERS: ApiProviderDef[] = [
   { featureId: 'aiOllama',      provider: 'ollama',     label: 'Ollama' },
   { featureId: 'aiGroq',        provider: 'groq',       label: 'Groq AI' },
-  { featureId: 'aiOpenAI',      provider: 'openai',     label: 'OpenAI' },
+  { featureId: 'aiOpenAI',      provider: 'openai',     label: 'OpenAI-compatible' },
   { featureId: 'aiOpenRouter',  provider: 'openrouter', label: 'OpenRouter' },
 ];
 

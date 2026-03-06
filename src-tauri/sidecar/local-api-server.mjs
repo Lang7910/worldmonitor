@@ -99,7 +99,7 @@ globalThis.fetch = async function ipv4Fetch(input, init) {
 };
 
 const ALLOWED_ENV_KEYS = new Set([
-  'GROQ_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'FRED_API_KEY', 'EIA_API_KEY',
+  'GROQ_API_KEY', 'OPENAI_API_KEY', 'OPENAI_API_URL', 'OPENAI_MODEL', 'OPENROUTER_API_KEY', 'FRED_API_KEY', 'EIA_API_KEY',
   'CLOUDFLARE_API_TOKEN', 'ACLED_ACCESS_TOKEN', 'URLHAUS_AUTH_KEY',
   'OTX_API_KEY', 'ABUSEIPDB_API_KEY', 'WINGBITS_API_KEY', 'WS_RELAY_URL',
   'VITE_OPENSKY_RELAY_URL', 'OPENSKY_CLIENT_ID', 'OPENSKY_CLIENT_SECRET',
@@ -619,6 +619,33 @@ function relayToHttpUrl(rawUrl) {
   }
 }
 
+const OPENAI_COMPAT_DEFAULT_BASE_URL = 'https://api.openai.com/v1';
+
+function buildOpenAICompatibleProbeUrl(rawUrl, endpoint = 'models') {
+  const candidate = String(rawUrl || '').trim();
+  if (!candidate) return null;
+  try {
+    const parsed = new URL(candidate);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+
+    const cleanedPath = parsed.pathname.replace(/\/+$/, '');
+    if (!cleanedPath || cleanedPath === '/') {
+      parsed.pathname = `/${endpoint}`;
+    } else if (cleanedPath.endsWith('/chat/completions')) {
+      parsed.pathname = `${cleanedPath.slice(0, -'/chat/completions'.length)}/${endpoint}`;
+    } else if (cleanedPath.endsWith(`/${endpoint}`)) {
+      parsed.pathname = cleanedPath;
+    } else {
+      parsed.pathname = `${cleanedPath}/${endpoint}`;
+    }
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 function isAuthFailure(status, text = '') {
   // Intentionally broad for provider auth responses.
   // Callers MUST check isCloudflareChallenge403() first or CF challenge pages
@@ -674,14 +701,47 @@ async function validateSecretAgainstProvider(key, rawValue, context = {}) {
     }
 
     case 'OPENAI_API_KEY': {
-      const response = await fetchWithTimeout('https://api.openai.com/v1/models', {
+      const contextApiUrl = typeof context.OPENAI_API_URL === 'string' ? context.OPENAI_API_URL.trim() : '';
+      const probeUrl = buildOpenAICompatibleProbeUrl(
+        contextApiUrl || String(process.env.OPENAI_API_URL || OPENAI_COMPAT_DEFAULT_BASE_URL),
+        'models'
+      );
+      if (!probeUrl) return fail('Set a valid OPENAI_API_URL first');
+
+      const response = await fetchWithTimeout(probeUrl, {
         headers: { Authorization: `Bearer ${value}`, 'User-Agent': CHROME_UA },
       });
       const text = await response.text();
-      if (isAuthFailure(response.status, text)) return fail('OpenAI rejected this key');
-      if (!response.ok) return fail(`OpenAI probe failed (${response.status})`);
-      return ok('OpenAI key verified');
+      if (isCloudflareChallenge403(response, text)) return ok('OpenAI-compatible key stored (Cloudflare blocked verification)');
+      if (isAuthFailure(response.status, text)) return fail('OpenAI-compatible endpoint rejected this key');
+      if (!response.ok) return fail(`OpenAI-compatible probe failed (${response.status})`);
+      return ok('OpenAI-compatible key verified');
     }
+
+    case 'OPENAI_API_URL': {
+      const probeUrl = buildOpenAICompatibleProbeUrl(value, 'models');
+      if (!probeUrl) return fail('Must be a valid http(s) URL');
+
+      const contextApiKey = typeof context.OPENAI_API_KEY === 'string' ? context.OPENAI_API_KEY.trim() : '';
+      const apiKey = contextApiKey || String(process.env.OPENAI_API_KEY || '').trim();
+      const headers = { 'User-Agent': CHROME_UA };
+      if (apiKey) {
+        headers.Authorization = `Bearer ${apiKey}`;
+      }
+
+      const response = await fetchWithTimeout(probeUrl, { headers });
+      const text = await response.text();
+      if (isCloudflareChallenge403(response, text)) return ok('OpenAI-compatible URL stored (Cloudflare blocked verification)');
+      if (isAuthFailure(response.status, text)) {
+        if (apiKey) return fail('OpenAI-compatible endpoint rejected current API key');
+        return ok('OpenAI-compatible endpoint reachable (authentication required)');
+      }
+      if (!response.ok) return fail(`OpenAI-compatible endpoint probe failed (${response.status})`);
+      return ok('OpenAI-compatible endpoint verified');
+    }
+
+    case 'OPENAI_MODEL':
+      return ok('OpenAI-compatible model stored');
 
     case 'FRED_API_KEY': {
       const response = await fetchWithTimeout(

@@ -133,6 +133,33 @@ export interface ProviderCredentials {
   extraBody?: Record<string, unknown>;
 }
 
+function resolveOpenAICompatibleChatCompletionsUrl(rawUrl: string | undefined): string {
+  const fallback = 'https://api.openai.com/v1/chat/completions';
+  const candidate = String(rawUrl || '').trim();
+  if (!candidate) return fallback;
+
+  try {
+    const parsed = new URL(candidate);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return fallback;
+
+    const cleanedPath = parsed.pathname.replace(/\/+$/, '');
+    if (!cleanedPath || cleanedPath === '/') {
+      parsed.pathname = '/chat/completions';
+    } else if (cleanedPath.endsWith('/chat/completions')) {
+      parsed.pathname = cleanedPath;
+    } else if (cleanedPath.endsWith('/models')) {
+      parsed.pathname = `${cleanedPath.slice(0, -'/models'.length)}/chat/completions`;
+    } else {
+      parsed.pathname = `${cleanedPath}/chat/completions`;
+    }
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return fallback;
+  }
+}
+
 export function getProviderCredentials(provider: string): ProviderCredentials | null {
   if (provider === 'ollama') {
     const baseUrl = process.env.OLLAMA_API_URL;
@@ -169,7 +196,7 @@ export function getProviderCredentials(provider: string): ProviderCredentials | 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return null;
     return {
-      apiUrl: process.env.OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions',
+      apiUrl: resolveOpenAICompatibleChatCompletionsUrl(process.env.OPENAI_API_URL),
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       headers: {
         'Authorization': `Bearer ${apiKey}`,

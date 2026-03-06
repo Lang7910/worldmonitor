@@ -27,9 +27,11 @@ const MENU_HELP_GITHUB_ID: &str = "help.github";
 #[cfg(feature = "devtools")]
 const MENU_HELP_DEVTOOLS_ID: &str = "help.devtools";
 const TRUSTED_WINDOWS: [&str; 3] = ["main", "settings", "live-channels"];
-const SUPPORTED_SECRET_KEYS: [&str; 26] = [
+const SUPPORTED_SECRET_KEYS: [&str; 28] = [
     "GROQ_API_KEY",
     "OPENAI_API_KEY",
+    "OPENAI_API_URL",
+    "OPENAI_MODEL",
     "OPENROUTER_API_KEY",
     "FRED_API_KEY",
     "EIA_API_KEY",

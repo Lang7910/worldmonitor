@@ -4,10 +4,12 @@ World Monitor desktop now uses a runtime configuration schema with per-feature t
 
 ## Secret keys
 
-The desktop vault schema (Rust `SUPPORTED_SECRET_KEYS`) supports the following 26 keys:
+The desktop vault schema (Rust `SUPPORTED_SECRET_KEYS`) supports the following 28 keys:
 
 - `GROQ_API_KEY`
 - `OPENAI_API_KEY`
+- `OPENAI_API_URL`
+- `OPENAI_MODEL`
 - `OPENROUTER_API_KEY`
 - `FRED_API_KEY`
 - `EIA_API_KEY`

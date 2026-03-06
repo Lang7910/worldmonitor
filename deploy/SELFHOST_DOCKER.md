@@ -43,3 +43,4 @@ docker compose --env-file deploy/selfhost.env -f deploy/docker-compose.selfhost.
 - `ENABLE_RELAY=auto` enables relay profile only if `AISSTREAM_API_KEY` is set.
 - `LOCAL_API_CLOUD_FALLBACK=false` keeps requests local-only (no dependency on worldmonitor.app).
 - `LOCAL_API_YOUTUBE_LIVE_MODE=local` enables local `api/youtube/live` handler for self-hosted mode.
+- During first image build, API stage can stay on a single step for several minutes while Docker creates large layers. This is normal as long as CPU/disk are active.
