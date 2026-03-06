@@ -61,6 +61,7 @@ import {
   STORAGE_KEYS,
   SITE_VARIANT,
 } from '@/config';
+import { shouldUseLocalVariantSwitch } from '@/config/variant';
 import { BETA_MODE } from '@/config/beta';
 import { t } from '@/services/i18n';
 import { getCurrentTheme } from '@/utils';
@@ -129,7 +130,7 @@ export class PanelLayoutManager implements AppModule {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
           <div class="variant-switcher">${(() => {
-        const local = this.ctx.isDesktopApp || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        const local = shouldUseLocalVariantSwitch();
         const vHref = (v: string, prod: string) => local || SITE_VARIANT === v ? '#' : prod;
         const vTarget = (_v: string) => '';
         return `

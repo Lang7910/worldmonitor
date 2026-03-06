@@ -28,6 +28,7 @@ import {
   INTEL_SOURCES,
   DEFAULT_PANELS,
 } from '@/config';
+import { shouldUseLocalVariantSwitch } from '@/config/variant';
 import {
   saveSnapshot,
   initAisStream,
@@ -282,8 +283,8 @@ export class EventHandlerManager implements AppModule {
       trackThemeChanged(next);
     });
 
-    const isLocalDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    if (this.ctx.isDesktopApp || isLocalDev) {
+    const useLocalVariantSwitch = shouldUseLocalVariantSwitch();
+    if (useLocalVariantSwitch) {
       this.ctx.container.querySelectorAll<HTMLAnchorElement>('.variant-option').forEach(link => {
         link.addEventListener('click', (e) => {
           const variant = link.dataset.variant;
@@ -393,12 +394,12 @@ export class EventHandlerManager implements AppModule {
     overlay.addEventListener('click', () => this.closeMobileMenu());
     closeBtn.addEventListener('click', () => this.closeMobileMenu());
 
-    const isLocalDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const useLocalVariantSwitch = shouldUseLocalVariantSwitch();
     menu.querySelectorAll<HTMLButtonElement>('.mobile-menu-variant').forEach(btn => {
       btn.addEventListener('click', () => {
         const variant = btn.dataset.variant;
         if (variant && variant !== SITE_VARIANT) {
-          if (this.ctx.isDesktopApp || isLocalDev) {
+          if (useLocalVariantSwitch) {
             trackVariantSwitch(SITE_VARIANT, variant);
             localStorage.setItem('worldmonitor-variant', variant);
             window.location.reload();
